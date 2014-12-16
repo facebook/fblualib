@@ -69,6 +69,7 @@ sudo apt-get install \
     libedit-dev \
     libmatio-dev \
     libpython-dev \
+    libpython3-dev \
     python-numpy
 
 echo
@@ -77,7 +78,7 @@ echo
 git clone https://github.com/facebook/folly
 git clone https://github.com/facebook/fbthrift
 git clone https://github.com/facebook/thpp
-git clone https://github.com/facebook/fblualib
+git clone https://github.com/soumith/fblualib
 
 echo
 echo Building folly
@@ -98,13 +99,6 @@ autoreconf -ivf
 ./configure
 make
 sudo make install
-
-echo
-echo '(Re)Installing Torch dependencies'
-echo
-
-curl -sk https://raw.githubusercontent.com/torch/ezinstall/master/install-deps | bash
-curl -sk https://raw.githubusercontent.com/torch/ezinstall/master/install-luajit+torch | bash
 
 echo
 echo 'Installing TH++'
