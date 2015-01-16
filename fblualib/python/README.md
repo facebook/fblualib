@@ -1,6 +1,6 @@
 # fb-python: A bridge between Lua and Python
 
-This modules allows almost seamless interaction between Lua and Python, with
+This module allows almost seamless interaction between Lua and Python, with
 on-the-fly conversion (with good defaults) of most data types back and forth.
 This allows, for example, to use `numpy`, `scipy`, or `matplotlib` directly
 with Torch tensors.
