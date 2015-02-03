@@ -78,7 +78,7 @@ echo
 git clone https://github.com/facebook/folly
 git clone https://github.com/facebook/fbthrift
 git clone https://github.com/facebook/thpp
-git clone https://github.com/soumith/fblualib
+git clone https://github.com/dwiel/fblualib
 
 echo
 echo Building folly
