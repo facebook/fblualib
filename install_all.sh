@@ -90,7 +90,9 @@ autoreconf -ivf
 make
 sudo make install
 # ensure that /usr/local/lib is picked up by libtool if it wasn't already configured
-sudo ldconfig
+source ~/.profile
+source ~/.bashrc
+
 
 echo
 echo Building fbthrift
