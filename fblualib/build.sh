@@ -25,7 +25,7 @@ make
 sudo make install
 
 rocks="util luaunit complex \
-  ffivector editline trepl debugger mattorch thrift" # python"
+  ffivector editline trepl debugger mattorch thrift python"
 version='0.1-1'
 for rock in $rocks; do
   cd $root/$rock
