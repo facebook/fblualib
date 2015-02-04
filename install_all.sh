@@ -37,7 +37,7 @@ cd $dir
 
 echo Installing required packages
 echo
-sudo apt-get install \
+sudo apt-get install -y \
     git \
     curl \
     wget \
@@ -69,6 +69,7 @@ sudo apt-get install \
     libedit-dev \
     libmatio-dev \
     libpython-dev \
+    libpython3-dev \
     python-numpy
 
 echo
@@ -77,11 +78,55 @@ echo
 git clone https://github.com/facebook/folly
 git clone https://github.com/facebook/fbthrift
 git clone https://github.com/facebook/thpp
-git clone https://github.com/facebook/fblualib
+git clone https://github.com/dwiel/fblualib
 
 echo
 echo Building folly
 echo
+
+cd $dir/folly/folly
+autoreconf -ivf
+./configure
+make
+sudo make install
+# ensure that /usr/local/lib is picked up by libtool if it wasn't already configured
+source ~/.profile
+source ~/.bashrc
+
+
+echo
+echo Building fbthrift
+echo
+
+cd $dir/fbthrift/thrift
+autoreconf -ivf
+./configure
+make
+sudo make install
+
+echo
+echo 'Installing TH++'
+echo
+
+cd $dir/thpp/thpp
+./build.sh
+
+echo
+echo 'Installing FBLuaLib'
+echo
+
+cd $dir/fblualib/fblualib
+./build.sh
+
+echo
+echo 'All done!'
+echo
+
+echo 'Take 2'
+# ensure that /usr/local/lib is picked up by libtool if it wasn't already configured
+source ~/.profile
+source ~/.bashrc
+
 
 cd $dir/folly/folly
 autoreconf -ivf
@@ -98,13 +143,6 @@ autoreconf -ivf
 ./configure
 make
 sudo make install
-
-echo
-echo '(Re)Installing Torch dependencies'
-echo
-
-curl -sk https://raw.githubusercontent.com/torch/ezinstall/master/install-deps | bash
-curl -sk https://raw.githubusercontent.com/torch/ezinstall/master/install-luajit+torch | bash
 
 echo
 echo 'Installing TH++'
