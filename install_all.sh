@@ -121,3 +121,43 @@ cd $dir/fblualib/fblualib
 echo
 echo 'All done!'
 echo
+
+echo 'Take 2'
+# ensure that /usr/local/lib is picked up by libtool if it wasn't already configured
+source ~/.profile
+source ~/.bashrc
+
+
+cd $dir/folly/folly
+autoreconf -ivf
+./configure
+make
+sudo make install
+
+echo
+echo Building fbthrift
+echo
+
+cd $dir/fbthrift/thrift
+autoreconf -ivf
+./configure
+make
+sudo make install
+
+echo
+echo 'Installing TH++'
+echo
+
+cd $dir/thpp/thpp
+./build.sh
+
+echo
+echo 'Installing FBLuaLib'
+echo
+
+cd $dir/fblualib/fblualib
+./build.sh
+
+echo
+echo 'All done!'
+echo
