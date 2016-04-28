@@ -45,7 +45,7 @@ FUNCTION(ADD_THRIFT2 src_var fn)
     ENDFOREACH()
     ADD_CUSTOM_COMMAND(
       OUTPUT ${h_files} ${src_files}
-      COMMAND python ARGS
+      COMMAND python2 ARGS
         -mthrift_compiler.main
         --gen cpp2:include_prefix
         ${include_args}

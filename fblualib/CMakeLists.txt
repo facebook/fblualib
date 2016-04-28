@@ -34,6 +34,8 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
 
 SET(src
   LuaUtils.cpp
+  Reactor.cpp
+  UserData.cpp
 )
 
 SET(h
@@ -56,4 +58,4 @@ INSTALL(TARGETS fblualib
         LIBRARY DESTINATION ${Torch_INSTALL_LIB})
 
 INSTALL(FILES ${h}
-        DESTINATION "${Torch_INSTALL_INCLUDE}/include/${MLI_INCLUDE_RELATIVE_OUTPUT_DIR}")
+        DESTINATION "${Torch_INSTALL_INCLUDE}/${MLI_INCLUDE_RELATIVE_OUTPUT_DIR}")
