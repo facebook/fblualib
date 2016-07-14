@@ -38,7 +38,6 @@ build = {
         cmake -DROCKS_PREFIX=$(PREFIX) \
               -DROCKS_LUADIR=$(LUADIR) \
               -DROCKS_LIBDIR=$(LIBDIR) \
-              -DLUA_INCDIR="$(LUA_INCDIR)" \
               .. &&
         $(MAKE)
     ]],

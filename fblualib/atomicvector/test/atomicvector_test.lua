@@ -105,6 +105,7 @@ local function buildHugeVector(name, numTensors, numThreads)
 
     local workers = threads(numThreads,
         function(threadidx)
+            sdl = require 'sdl2'
         end,
         function(threadidx)
             -- Capture stuff we need in the thread body. This is bizarre;
@@ -133,14 +134,13 @@ function testLoadAndSave()
     local av = require('fb.atomicvector')
     local file = require('fb.util.file')
     require('torch')
-    local os = require 'os'
 
     local name = "ldAndSave" .. math.random(320)
 
     local nElements = 1e5
     local vec
     local numThreads = 40
-    local filename = os.tmpname()
+    local filename = '/tmp/av_save_load_test.dat'
 
     file.truncate(filename, 0)
     buildHugeVector(name, nElements, numThreads)
@@ -173,7 +173,6 @@ function testLoadAndSave()
     vec2 = nil
     av.destroy(name2)
     collectgarbage()
-    os.remove(filename)
 end
 
 function testErrorClib()
@@ -203,30 +202,6 @@ function testGetError()
     local av = require('fb.atomicvector')
     local rslt, no_such_vec = pcall(function() av.get('nopes') end)
     assert(not rslt)
-end
-
-function testBadIndexError()
-    local name = 'foo'
-    local av = require('fb.atomicvector')
-    av.create_float(name)
-    local vec = av.get(name)
-    -- Read past end
-    local success, message = pcall(function()
-       print(vec[2])
-    end)
-    assert(not success)
-    print(message)
-
-    -- Write past end.
-    local success, message = pcall(function()
-       vec[2] = torch.Tensor({333}):float()
-    end)
-    assert(not success)
-    print(message)
-
-    vec = nil
-    collectgarbage()
-    av.destroy(name)
 end
 
 function testAppendError()
@@ -262,6 +237,7 @@ function testParallelAppend()
 
     local workers = threads(numThreads,
         function(threadidx)
+            sdl = require 'sdl2'
         end,
         function(threadidx)
             -- Capture stuff we need in the thread body. This is bizarre;

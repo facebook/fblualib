@@ -46,7 +46,7 @@ template<> struct Serde<T*> {                         \
     auto decoded = cppDecode(sr);                     \
     auto thppTensor = getTensor<Real>(std::move(decoded)); \
     auto retval = thppTensor.moveAsTH();              \
-    /* refcount=1; caller's job to decref. */         \
+    /* Caller's job to incref if necessary. */        \
     return retval;                                    \
   }                                                   \
 }
@@ -102,24 +102,15 @@ class TorchAtomicVector : public TorchAtomicVectorIf {
 
   virtual int luaRead(lua_State* L) {
     int idx = luaL_checknumber(L, 2);
-    try {
-      auto val = m_av.read(idx - 1);
-      luaT_pushudata(L, val, kTensorTypeName);
-    } catch (std::runtime_error &err) {
-      luaL_error(L, "atomic vector error: %s %d", err.what(),
-                 idx);
-    }
+    auto val = m_av.read(idx - 1);
+    luaT_pushudata(L, val, kTensorTypeName);
     return 1;
   }
 
   virtual int luaWrite(lua_State* L) {
     int idx = luaL_checknumber(L, 2);
     auto val = checkTensor(L, 3);
-    try {
-      m_av.write(idx - 1, val);
-    } catch (std::runtime_error &err) {
-       luaL_error(L, "bad atomic vector index: %s %d", err.what(), idx);
-    }
+    m_av.write(idx - 1, val);
     return 0;
   }
 

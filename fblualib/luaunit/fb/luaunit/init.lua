@@ -17,7 +17,7 @@ Initial author: Ryu, Gwang (http://www.gpgstudy.com/gpgiki/LuaUnit)
 Lot of improvements by Philippe Fremy <phil@freehackers.org>
 License: BSD License, see LICENSE.txt
 ]]--
-local eh = require('fb.util.error')
+
 local pl = require('pl.import_into')()
 local DEFAULT_VERBOSITY = 1
 local cjson = require('cjson')
@@ -53,7 +53,7 @@ local function mytostring( v )
         if v.__class__ then
             return string.gsub( tostring(v), 'table', v.__class__ )
         end
-        return pl.pretty.write(v)
+        return tostring(v)
     end
     return tostring(v)
 end
@@ -70,9 +70,31 @@ local function errormsg(expected, actual)
     return errorMsg
 end
 
+local function _is_table_equals(actual, expected)
+    if (type(actual) == 'table') and (type(expected) == 'table') then
+        for k,v in ipairs(actual) do
+            if not _is_table_equals(v, expected[k]) then
+                return false
+            end
+        end
+        for k,v in pairs(actual) do
+            if type(k) ~= 'number' and not _is_table_equals(v, expected[k]) then
+
+                return false
+            end
+        end
+        return true
+    elseif type(actual) ~= type(expected) then
+        return false
+    elseif actual == expected then
+        return true
+    end
+    return false
+end
+
 function assertEquals(actual, expected)
     if type(actual) == 'table' and type(expected) == 'table' then
-        if not pl.tablex.deepcompare(actual, expected, false, 1e-14) then
+        if not _is_table_equals(actual, expected) then
             error( errormsg(actual, expected), 2 )
         end
     elseif type(actual) ~= type(expected) then
@@ -202,13 +224,14 @@ function TapOutput:startSuite() end
 function TapOutput:startClass(className) end
 function TapOutput:startTest(testName) end
 
-function TapOutput:addFailure( errorMsg, verboseErrorMsg )
+function TapOutput:addFailure( errorMsg, stackTrace )
     print(string.format(
         "not ok %d\t%s", self.result.testCount, self.result.currentTestName ))
-    if self.verbosity > 1 then
-        print( prefixString( '    ', verboseErrorMsg ) )
-    elseif self.verbosity > 0 then
+    if self.verbosity > 0 then
         print( prefixString( '    ', errorMsg ) )
+    end
+    if self.verbosity > 1 then
+        print( prefixString( '    ', stackTrace ) )
     end
 end
 
@@ -252,12 +275,12 @@ function JUnitOutput:startTest(testName)
     end
 end
 
-function JUnitOutput:addFailure( errorMsg, verboseErrorMsg )
+function JUnitOutput:addFailure( errorMsg, stackTrace )
     if g_xmlFile then
         g_xmlFile:write(
             '<failure type="lua runtime error">' .. errorMsg .. '</failure>\n')
         g_xmlFile:write(
-            '<system-err><![CDATA[' .. verboseErrorMsg .. ']]></system-err>\n')
+            '<system-err><![CDATA[' .. stackTrace .. ']]></system-err>\n')
     end
 end
 
@@ -290,7 +313,7 @@ function FBJsonOutput:startTest(testName)
     self.startTime = os.time()
 end
 
-function FBJsonOutput:addFailure(errorMsg, verboseErrorMsg)
+function FBJsonOutput:addFailure(errorMsg, stackTrace)
     table.insert(self.failureMessages, errorMsg)
 end
 
@@ -350,10 +373,9 @@ function TextOutput:startTest(testName)
     end
 end
 
-function TextOutput:addFailure( errorMsg, verboseErrorMsg )
+function TextOutput:addFailure( errorMsg, stackTrace )
     table.insert(
-        self.errorList, { self.result.currentTestName, errorMsg,
-                          verboseErrorMsg } )
+        self.errorList, { self.result.currentTestName, errorMsg, stackTrace } )
     if self.verbosity == 0 then
         io.stdout:write("F")
     end
@@ -380,12 +402,11 @@ function TextOutput:endClass()
 end
 
 function TextOutput:displayOneFailedTest( failure )
-    local testName, errorMsg, verboseErrorMsg = unpack( failure )
+    local testName, errorMsg, stackTrace = unpack( failure )
     print(">>> " .. testName .. " failed")
+    print( errorMsg )
     if self.verbosity > 1 then
-        print( verboseErrorMsg )
-    elseif self.verbosity > 0 then
-        print( errorMsg )
+        print( stackTrace )
     end
 end
 
@@ -436,8 +457,7 @@ NilOutput:catch(function(self, name) return nop end)
 LuaUnit = pl.class()
 
 function LuaUnit:_init()
-    self.verbosity = tonumber(
-        os.getenv('LUAUNIT_VERBOSE') or DEFAULT_VERBOSITY)
+    self.verbosity = DEFAULT_VERBOSITY
 end
 
 -----------------[[ Utility methods ]]---------------------
@@ -483,12 +503,12 @@ function LuaUnit:startTest( testName  )
     self.output:startTest( testName )
 end
 
-function LuaUnit:addFailure( errorMsg, verboseErrorMsg )
+function LuaUnit:addFailure( errorMsg, stackTrace )
     if not self.result.currentTestHasFailure then
         self.result.failureCount = self.result.failureCount + 1
         self.result.currentTestHasFailure = true
     end
-    self.output:addFailure( errorMsg, verboseErrorMsg )
+    self.output:addFailure( errorMsg, stackTrace )
 end
 
 function LuaUnit:endTest()
@@ -527,6 +547,8 @@ end
 
 --------------[[ Runner ]]-----------------
 
+local SPLITTER = '\n>----------<\n'
+
 local abort_on_error = os.getenv('LUAUNIT_ABORT_ON_ERROR')
 
 function LuaUnit:protectedCall( classInstance , methodInstance)
@@ -537,12 +559,14 @@ function LuaUnit:protectedCall( classInstance , methodInstance)
 
     -- if classInstance is nil, this is just a function run
     local function err_handler(e)
-        return eh.wrap(e, 4)
+        return debug.traceback(e .. SPLITTER, 4)
     end
 
     local ok, errorMsg = xpcall(methodInstance, err_handler, classInstance)
     if not ok then
-        self:addFailure(tostring(errorMsg), eh.format(errorMsg))
+        local t = pl.stringx.split(errorMsg, SPLITTER)
+        local stackTrace = string.sub(t[2] or '',2)
+        self:addFailure( t[1], stackTrace )
     end
 
     return ok
@@ -660,21 +684,13 @@ function LuaUnit:add_test(name, value, parent)
     parent._tests[name] = value
 end
 
-local function noun_number(n, s, p)
-    p = p or s .. 's'
-    if n == 1 then
-        return s
-    else
-        return p
-    end
-end
-
 function LuaUnit:main(...)
     local result = self:run(...)
     assert(type(result) == 'number')
-    if result ~= 0 then
-        error(string.format(
-                '%d %s failed', result, noun_number(result, 'test')))
+    if result == 0 then
+        os.exit(0)
+    else
+        os.exit(1)
     end
 end
 
@@ -751,8 +767,6 @@ function LuaUnit:runSuite(...)
     else
         self:runSomeTest({}, _G, nil, nil, self._runTestMethod)
     end
-
-    self:endSuite()
 
     return self.result.failureCount
 end

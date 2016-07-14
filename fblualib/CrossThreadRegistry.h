@@ -22,20 +22,9 @@ namespace {
 template<typename Key, typename Val>
 class CrossThreadRegistry {
   std::mutex m_mutex;
-  typedef std::unordered_map<Key, std::unique_ptr<Val>> Registry;
-  Registry  m_registry;
+  std::unordered_map<Key, std::unique_ptr<Val>> m_registry;
 
 public:
-  template <typename Lambda>
-  Val* getOrCreate(const Key& key, Lambda factory) {
-    std::lock_guard<std::mutex> l(m_mutex);
-    auto pos = m_registry.find(key);
-    if (pos == m_registry.end()) {
-      pos = m_registry.emplace(key, factory()).first;
-    }
-    return pos->second.get();
-  }
-
   template<typename Lambda>
   bool create(const Key& key, Lambda factory) {
     std::lock_guard<std::mutex> l(m_mutex);

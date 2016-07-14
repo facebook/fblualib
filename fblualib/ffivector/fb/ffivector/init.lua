@@ -70,7 +70,7 @@
 -- -- (vec[43] = 'foo')
 
 local ffi = require('ffi')
-local lib_path = package.searchpath('libfbffivector', package.cpath)
+local lib_path = package.searchpath('libffivector', package.cpath)
 if not lib_path then
    lib_path = require('fb.ffivector._config').clib
 end
@@ -135,7 +135,7 @@ local function new(ctype, initial_capacity, index, newindex, destructor)
         end
 
         function methods:reserve(n)
-            if lib.ffivector_reserve(self._v, n) < 0 then
+            if lib.ffivector_resserve(self._v, n) < 0 then
                 error('Out of memory')
             end
         end

@@ -14,11 +14,6 @@
 #include <folly/Random.h>
 #include <thpp/Tensor.h>
 
-#ifdef FB_INTERNAL
-#else
-#define LUAOPEN(x) luaopen_async_rng(x)
-#endif
-
 using namespace thpp;
 using namespace fblualib;
 
@@ -48,7 +43,7 @@ class AsyncRNG : public AsyncRNGBase {
   void dequeueLoop();
 
   struct Response {
-    typename Tensor<T>::Ptr randomNumbers;
+    Tensor<T> randomNumbers;
   };
 
   const size_t numThreads_;
@@ -110,7 +105,7 @@ void AsyncRNG<T>::terminate() {
   for (auto& t : threads_) {
     Response resp;
     pipeline_.blockingRead(resp);
-    DCHECK(!resp.randomNumbers);
+    DCHECK_EQ(resp.randomNumbers.size(), 0);
   }
 
   for (auto& t : threads_) {
@@ -126,8 +121,8 @@ void AsyncRNG<T>::dequeueLoop() {
     Response resp;
 
     if (req) {
-      resp.randomNumbers = Tensor<T>::makePtr({long(chunkSize_)});
-      generator_(*resp.randomNumbers);
+      resp.randomNumbers = Tensor<T>({long(chunkSize_)});
+      generator_(resp.randomNumbers);
     }
 
     pipeline_.template blockingWriteStage<0>(ticket, std::move(resp));
@@ -141,7 +136,7 @@ void AsyncRNG<T>::getBatch(size_t size, std::vector<Tensor<T>>& out) {
     if (indexInCurrentChunk_ < chunkSize_) {
       size_t n = std::min(size, chunkSize_ - indexInCurrentChunk_);
       out.emplace_back();
-      out.back().narrow(*currentResponse_.randomNumbers, 0,
+      out.back().narrow(currentResponse_.randomNumbers, 0,
                         indexInCurrentChunk_, n);
       indexInCurrentChunk_ += n;
       size -= n;

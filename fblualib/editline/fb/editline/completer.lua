@@ -109,8 +109,7 @@ end
 
 -- tensor/storage/torch-classes completer
 table.insert(M.completers.value, function(t, sep)
-                if not torch or (torch and torch.typename(t) == nil)
-                or t.__metatable == nil then
+                if not torch or (torch and torch.typename(t) == nil) then
                    return
                 end
                 for k, v in pairs(t.__metatable) do

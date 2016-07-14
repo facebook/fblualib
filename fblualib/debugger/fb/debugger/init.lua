@@ -6,6 +6,7 @@
 --  LICENSE file in the root directory of this source tree. An additional grant
 --  of patent rights can be found in the PATENTS file in the same directory.
 --
+
 local pl = require('pl.import_into')()
 local printf = pl.utils.printf
 local breakpoint = require('fb.debugger.breakpoint')
@@ -14,14 +15,19 @@ local types = require('fb.debugger.types')
 local editline = require('fb.editline')
 local completer = require('fb.editline.completer')
 
+local ok, trepl = pcall(require, 'fb.trepl')
+if not ok then
+    trepl = nil
+end
+
 local current_hook_mode = ''
 local stepping = false
 local stepping_thread
 local stepping_depth
 local current_file_contents
 local current_start_line
-local next_start_line
 local current_line
+
 local function prompt_exit()
     io.stdout:write('Do you really want to exit debugger ([y]/n)? ')
     io.flush()
@@ -252,8 +258,6 @@ print <expr>        Evaluate <expr> in context of current stack frame
                     (alias: p)
 
 list <location>     List code around <location> (alias: l)
-list .              Repeat same listing as before, don't advance
-list @              List code around current position in code (alias: ll)
 
 quit                Quit debugger (alias: q)]==])
 end
@@ -283,7 +287,6 @@ end
 function DebugStack:_new_location()
     current_file_contents = nil
     current_start_line = nil
-    next_start_line = nil
     current_line = nil
     self:_show_current()
 end
@@ -316,9 +319,10 @@ function DebugStack:_exec(code)
     end
 end
 
-function DebugStack:repl()
-    local trepl = require 'fb.trepl'
-    self:_exec(trepl.make_repl('D'))
+if trepl then
+    function DebugStack:repl()
+        self:_exec(trepl.make_repl('D'))
+    end
 end
 
 function DebugStack:exec(code)
@@ -377,27 +381,10 @@ function DebugStack:_get_location(str)
 end
 
 function DebugStack:list(str)
-    local is_relative = false
-
-    if current_file_contents then
-        if (not str) or str == '+' then
-            is_relative = true
-            -- advance
-            current_start_line = next_start_line
-        elseif str == '.' then
-            is_relative = true
-            -- repeat same listing
-        elseif str == '@' then
-            -- list around current frame again; is_relative is false
-            str = ''
-        end
-    end
-
-    if not is_relative then
+    if (not current_file_contents) or (str and str ~= '') then
         local location, line = self:_get_location(str)
         current_line = line
         current_start_line = nil
-        next_start_line = nil
 
         if type(location) == 'function' then
             local info = debug.getinfo(location, 'S')
@@ -418,20 +405,13 @@ function DebugStack:list(str)
         end
     end
 
-    next_start_line = utils.print_numbered(
+    current_start_line = utils.print_numbered(
         current_file_contents,
         current_start_line,
         21,  -- lines of context
         current_line)
 end
 DebugStack.l = DebugStack.list
-
-function DebugStack:ll(str)
-    if (not str) or str == '' then
-        str = '@'
-    end
-    return self:list(str)
-end
 
 function DebugStack:_break(target)
     local location, line = self:_get_location(target)
@@ -715,32 +695,21 @@ for k, v in pairs(DebugStack) do
     end
 end
 
--- Initializing the editline library modifies the terminal mode.
--- If the process is running in the background, this will send it
--- SIGTTOU which will cause it to stop.
--- Therefore, lazy-initialize editline only when the debugger is
--- actually run.
-local eline
-local function eline_init()
-   eline = editline.EditLine({
-      prompt = 'DEBUG> ',
-      complete = function(word, line, startpos, endpos)
-          return completer.complete(
-              word, line, startpos, endpos,
-              eline_keywords,
-              function() return eline_dstack:_get_locals_and_upvalues() end)
-      end,
-      history_file = os.getenv('HOME') .. '/.lua_debug_history',
-      auto_history = true,
-  })
-end
+local eline = editline.EditLine({
+    prompt = 'DEBUG> ',
+    complete = function(word, line, startpos, endpos)
+        return completer.complete(
+            word, line, startpos, endpos,
+            eline_keywords,
+            function() return eline_dstack:_get_locals_and_upvalues() end)
+    end,
+    history_file = os.getenv('HOME') .. '/.lua_debug_history',
+    auto_history = true,
+})
 
 local function debug_readline_repl(dstack)
     dstack:_new_location()
     eline_dstack = dstack
-    if not eline then
-       eline_init()
-    end
     while true do
         local line = eline:read()
         if not line then

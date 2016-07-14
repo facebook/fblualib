@@ -170,8 +170,6 @@ local default_max_matches = 100
 
 local editrc_file = os.getenv('HOME') .. '/.editrc'
 
-local mutex = util.get_mutex('fb.editline.mutex')
-
 local function create_editrc()  -- ignoring race conditions...
     local f = io.open(editrc_file, 'r')
     if f then  -- already exists
@@ -236,12 +234,9 @@ function EditLine:_init(config)
     prompt_cb = ffi.new('el_pfunct_t', prompt_cb)
 
     -- Initialize editline
-    self.editline = util.call_locked(
-        mutex,
-        lib.el_init,
+    self.editline = lib.el_init(
         'trepl', ffi.C.stdin, ffi.C.stdout, ffi.C.stderr)
-    ffi.gc(self.editline,
-           function() util.call_locked(mutex, lib.el_end) end)
+    ffi.gc(self.editline, lib.el_end)
 
     -- Set completion function
     local function complete_func(el, ch)
@@ -307,34 +302,32 @@ function EditLine:_init(config)
     end
     complete_func = ffi.cast('el_addfn', complete_func)
 
-    util.call_locked(mutex, lib.el_set, self.editline, EL_ADDFN,
-                     "complete", "complete", complete_func)
+    lib.el_set(self.editline, EL_ADDFN, "complete", "complete",
+               complete_func)
 
     -- Initialize history; save history on destruction
-    self.history = util.call_locked(mutex, lib.history_init)
+    self.history = lib.history_init()
     self.hist_event = ffi.new('HistEvent')
     local function save_and_end_history()
         if config.history_file then
-            util.call_locked(mutex, lib.history, self.history, self.hist_event,
-                             H_SAVE, config.history_file)
+            lib.history(self.history, self.hist_event, H_SAVE,
+                        config.history_file)
         end
-        util.call_locked(mutex, lib.history_end, self.history)
+        lib.history_end(self.history)
     end
     ffi.gc(self.history, save_and_end_history)
 
     -- Associate EditLine with history
-    util.call_locked(mutex, lib.el_set, self.editline, EL_HIST, lib.history,
-                     self.history)
+    lib.el_set(self.editline, EL_HIST, lib.history, self.history)
 
     -- Source ~/.editrc
-    util.call_locked(mutex, lib.el_source, self.editline, nil)
+    lib.el_source(self.editline, nil)
 
-    util.call_locked(mutex, lib.el_set, self.editline, EL_PROMPT, prompt_cb)
+    lib.el_set(self.editline, EL_PROMPT, prompt_cb)
 
     -- Load history file
     if config.history_file then
-        util.call_locked(mutex, lib.history, self.history, self.hist_event,
-                         H_LOAD, config.history_file)
+        lib.history(self.history, self.hist_event, H_LOAD, config.history_file)
     end
 end
 
@@ -343,7 +336,7 @@ local null_string = c_string()
 
 function EditLine:read()
     local length = ffi.new('int[1]')
-    local line = util.call_locked(mutex, lib.el_gets, self.editline, length)
+    local line = lib.el_gets(self.editline, length)
 
     if line ~= null_string then
         line = ffi.string(line, length[0])
@@ -361,8 +354,7 @@ function EditLine:add_history(line)
     end
     line = pl.stringx.rstrip(line, '\r\n')
     if line ~= '' then
-        util.call_locked(mutex, lib.history, self.history, self.hist_event,
-                         H_ENTER, line)
+        lib.history(self.history, self.hist_event, H_ENTER, line)
     end
 end
 
@@ -377,7 +369,7 @@ function FakeEditLine:read()
     local prompt
     if self.config.prompt_func then
         prompt = self.config.prompt_func()
-    elseif self.config.prompt then
+    elseif config.prompt then
         prompt = self.config.prompt
     else
         prompt = '> '

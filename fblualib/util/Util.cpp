@@ -12,23 +12,12 @@
 // (Hello, OSX)
 #include <cerrno>
 #include <ctime>
-#include <mutex>
-#include <unordered_set>
 #include <glog/logging.h>
-#include <folly/Memory.h>
 #include <folly/Portability.h>
 #include <folly/Random.h>
 #include <folly/String.h>
 #include <folly/ThreadLocal.h>
-#include <fblualib/CrossThreadRegistry.h>
-
-// We may be running in a program that embeds google-glog, or we may not.
-// If we don't, we still need to call InitGoogleLogging(), but
-// InitGoogleLogging() abort()s if called twice. So we'll have to call
-// this internal function to check.
-namespace google { namespace glog_internal_namespace_ {
-bool IsGoogleLoggingInitialized();
-}}  // namespaces
+#include <folly/io/async/EventBase.h>
 
 namespace {
 constexpr int64_t kNsPerUs = 1000;
@@ -191,90 +180,48 @@ const char* cUnescape(const char* str, size_t len, std::string* out) {
   }
 }
 
-namespace {
-struct OnceRecord {
-  OnceRecord() : called(false) { }
-  std::mutex mutex;
-  bool called;
-};
-
-CrossThreadRegistry<std::string, OnceRecord> gOnceRegistry;
-CrossThreadRegistry<std::string, std::mutex> gMutexRegistry;
-}  // namespace
-
-OnceRecord* getOnce(const char* key) {
+folly::EventBase* eventBaseNew() {
   try {
-    return gOnceRegistry.getOrCreate(
-        key,
-        [] { return folly::make_unique<OnceRecord>(); });
+    return new folly::EventBase;
   } catch (const std::bad_alloc&) {
     return nullptr;
   }
 }
 
-bool lockOnce(OnceRecord* r) {
-  r->mutex.lock();
-  if (r->called) {
-    r->mutex.unlock();
+void eventBaseDelete(folly::EventBase* eb) {
+  delete eb;
+}
+
+bool eventBaseLoopForever(folly::EventBase* eb) {
+  try {
+    eb->loopForever();
+    return true;
+  } catch (const std::bad_alloc&) {
+    return false;
+  } catch (const std::system_error&) {
     return false;
   }
-  return true;
 }
 
-void unlockOnce(OnceRecord* r, bool success) {
-  assert(!r->called);
-  r->called = success;
-  r->mutex.unlock();
+void eventBaseTerminateLoop(folly::EventBase* eb) {
+  eb->terminateLoopSoon();
 }
 
-std::mutex* getMutex(const char* key) {
+bool eventBaseRunInLoop(folly::EventBase* eb, void (*fn)(void)) {
   try {
-    return gMutexRegistry.getOrCreate(
-        key,
-        [] { return folly::make_unique<std::mutex>(); });
+    eb->runInLoop(fn);
+    return true;
   } catch (const std::bad_alloc&) {
-    return nullptr;
+    return false;
   }
 }
 
-void lockMutex(std::mutex* mutex) {
-  mutex->lock();
-}
-
-void unlockMutex(std::mutex* mutex) {
-  mutex->unlock();
-}
-
-namespace {
-// Must match order and count in logging.lua
-const int gSeverities[] = {
-  google::GLOG_INFO,
-  google::GLOG_WARNING,
-  google::GLOG_ERROR,
-  google::GLOG_FATAL,
-};
-constexpr int gNumSeverities = sizeof(gSeverities) / sizeof(gSeverities[0]);
-}  // namespace
-
-void luaLog(int severity, const char* file, int line, const char* msg) {
-  if (severity < 0) {
-    severity = 0;
-  } else if (severity >= gNumSeverities) {
-    severity = gNumSeverities - 1;
-  }
-  google::LogMessage(file, line, gSeverities[severity]).stream() << msg;
-}
-
-namespace {
-
-std::mutex gLoggingInitMutex;
-
-}  // namespace
-
-void luaInitLogging(const char* argv0) {
-  std::lock_guard<std::mutex> lock(gLoggingInitMutex);
-  if (!google::glog_internal_namespace_::IsGoogleLoggingInitialized()) {
-    google::InitGoogleLogging(argv0 ? argv0 : "");
+bool eventBaseRunAfterDelay(folly::EventBase* eb, int milliseconds,
+                            void (*fn)(void)) {
+  try {
+    return eb->tryRunAfterDelay(fn, milliseconds);
+  } catch (const std::bad_alloc&) {
+    return false;
   }
 }
 
