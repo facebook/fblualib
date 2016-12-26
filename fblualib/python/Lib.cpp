@@ -186,8 +186,8 @@ const struct luaL_reg pythonFuncs[] = {
   {"tuple", getTuple},
   {"dict", getDict},
   {"import", getModule},
-  {"_check_no_refs", checkNoRefs},
-  {nullptr, nullptr},
+  {"_check_no_refs", checkNoRefs}
+ // {nullptr, nullptr},
 };
 
 }  // namespace
@@ -242,7 +242,7 @@ extern "C" int LUAOPEN(lua_State* L) {
   lua_newtable(L);
   luaL_register(L, nullptr, pythonFuncs);
 
-  {
+ // {
     // numpy's import_array() doesn't appear to be thread-safe...
 
     std::lock_guard<std::mutex> lock(gPythonInitMutex);
@@ -253,7 +253,7 @@ extern "C" int LUAOPEN(lua_State* L) {
     // Initialization finished. Any Python references created so far are there
     // to stay until the module is unloaded.
     debugSetWatermark();
-  }
+ // }
 
   return 1;
 }
