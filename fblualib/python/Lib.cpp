@@ -187,7 +187,7 @@ const struct luaL_reg pythonFuncs[] = {
   {"dict", getDict},
   {"import", getModule},
   {"_check_no_refs", checkNoRefs},
-  {nullptr, nullptr},
+  #{nullptr, nullptr},
 };
 
 }  // namespace
@@ -240,7 +240,7 @@ extern "C" int LUAOPEN(lua_State* L) {
   static PythonInitializer initializer;  // only once, thread-safe
 
   lua_newtable(L);
-  luaL_register(L, nullptr, pythonFuncs)
+ if( luaL_register(L, nullptr, pythonFuncs))_
 
   {
     // numpy's import_array() doesn't appear to be thread-safe...
