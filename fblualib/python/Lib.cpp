@@ -190,7 +190,7 @@ const struct luaL_reg pythonFuncs[] = {
   {nullptr, nullptr},
 };
 
-}  // namespace
+//}  // namespace
 
 extern "C" int LUAOPEN(lua_State* L);
 
