@@ -188,7 +188,7 @@ const struct luaL_reg pythonFuncs[17] = {
   {"import", getModule},
   {"_check_no_refs", checkNoRefs},
  {nullptr, nullptr},
-}
+};
 
 }  // namespace
 
