@@ -1,3 +1,20 @@
+\Skip to content
+This repository
+Search
+Pull requests
+Issues
+Gist
+ @qinghuizhao
+ Watch 59
+  Star 503
+  Fork 130 facebook/fblualib
+ Code  Issues 44  Pull requests 2  Projects 0  Wiki  Pulse  Graphs
+Branch: master Find file Copy pathfblualib/fblualib/python/Lib.cpp
+804736c  on Jun 2
+ Zeming Lin remove thrift and folly dependencies on fb.python OSS
+2 contributors @tudor @ajtulloch
+RawBlameHistory    
+260 lines (216 sloc)  6.5 KB
 /*
  *  Copyright (c) 2014, Facebook, Inc.
  *  All rights reserved.
@@ -12,10 +29,13 @@
 #define _GNU_SOURCE 1
 #endif
 
-#include <dlfcn.h>
 #include <Python.h>
+#include <glog/logging.h>
+#include <dlfcn.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
+
+#include <mutex>
 
 #include "LuaToPython.h"
 #include "PythonToLua.h"
@@ -69,12 +89,20 @@ int execPython(lua_State* L) {
   return 0;
 }
 
-int evalPython(lua_State* L) {
+int evalInner(lua_State* L, PythonToLuaConverter::NoneMode noneMode) {
   PythonGuard g;
   PyObjectHandle ret;
   auto ref = getOpaqueRef(L, 1);
-  PythonToLuaConverter converter;
+  PythonToLuaConverter converter(noneMode);
   return converter.convert(L, ref ? ref->obj : doExec(L, Py_eval_input));
+}
+
+int evalPython(lua_State* L) {
+  return evalInner(L, PythonToLuaConverter::NONE_AS_LUA_NIL);
+}
+
+int evalNonePython(lua_State* L) {
+  return evalInner(L, PythonToLuaConverter::NONE_AS_LUAPY_NONE);
 }
 
 int refEvalPython(lua_State* L) {
@@ -130,7 +158,7 @@ PyObjectHandle defaultFromList(lua_State* L) {
   return fromlist;
 }
 }  // namespace
-  
+
 int getModule(lua_State* L) {
   PythonGuard g;
   const char* name = lua_tostring(L, 1);
@@ -162,6 +190,7 @@ int getModule(lua_State* L) {
 const struct luaL_reg pythonFuncs[] = {
   {"exec", execPython},
   {"eval", evalPython},
+  {"eval_none", evalNonePython},
   {"reval", refEvalPython},
   {"ref", getRef},
   {"float", getFloat},
@@ -217,6 +246,8 @@ PythonInitializer::PythonInitializer() {
   }
 }
 
+std::mutex gPythonInitMutex;
+
 }  // namespace
 
 extern "C" int LUAOPEN(lua_State* L) {
@@ -228,13 +259,20 @@ extern "C" int LUAOPEN(lua_State* L) {
   lua_newtable(L);
   luaL_register(L, nullptr, pythonFuncs);
 
-  initRef(L);
-  initLuaToPython(L);
-  initPythonToLua(L);
+  {
+    // numpy's import_array() doesn't appear to be thread-safe...
 
-  // Initialization finished. Any Python references created so far are there
-  // to stay until the module is unloaded.
-  debugSetWatermark();
+    std::lock_guard<std::mutex> lock(gPythonInitMutex);
+    initRef(L);
+    initLuaToPython(L);
+    initPythonToLua(L);
+
+    // Initialization finished. Any Python references created so far are there
+    // to stay until the module is unloaded.
+    debugSetWatermark();
+  }
 
   return 1;
 }
+Contact GitHub API Training Shop Blog About
+© 2016 GitHub, Inc. Terms Privacy Security Status Help
