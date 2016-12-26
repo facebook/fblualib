@@ -1,20 +1,3 @@
-\Skip to content
-This repository
-Search
-Pull requests
-Issues
-Gist
- @qinghuizhao
- Watch 59
-  Star 503
-  Fork 130 facebook/fblualib
- Code  Issues 44  Pull requests 2  Projects 0  Wiki  Pulse  Graphs
-Branch: master Find file Copy pathfblualib/fblualib/python/Lib.cpp
-804736c  on Jun 2
- Zeming Lin remove thrift and folly dependencies on fb.python OSS
-2 contributors @tudor @ajtulloch
-RawBlameHistory    
-260 lines (216 sloc)  6.5 KB
 /*
  *  Copyright (c) 2014, Facebook, Inc.
  *  All rights reserved.
@@ -274,5 +257,3 @@ extern "C" int LUAOPEN(lua_State* L) {
 
   return 1;
 }
-Contact GitHub API Training Shop Blog About
-© 2016 GitHub, Inc. Terms Privacy Security Status Help
