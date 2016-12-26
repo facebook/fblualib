@@ -169,7 +169,7 @@ int getModule(lua_State* L) {
 
   return 1;
 }
-
+namespace{
 const struct luaL_reg pythonFuncs[] = {
   {"exec", execPython},
   {"eval", evalPython},
@@ -190,7 +190,7 @@ const struct luaL_reg pythonFuncs[] = {
   {nullptr, nullptr},
 };
 
-//}  // namespace
+}  // namespace
 
 extern "C" int LUAOPEN(lua_State* L);
 
