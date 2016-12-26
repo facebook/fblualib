@@ -240,7 +240,7 @@ extern "C" int LUAOPEN(lua_State* L) {
   static PythonInitializer initializer;  // only once, thread-safe
 
   lua_newtable(L);
-  luaL_register(L, nullptr, pythonFuncs);
+  luaL_register(L, nullptr, pythonFuncs)
 
   {
     // numpy's import_array() doesn't appear to be thread-safe...
