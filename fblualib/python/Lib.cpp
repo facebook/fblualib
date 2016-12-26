@@ -231,7 +231,7 @@ PythonInitializer::PythonInitializer() {
 
 std::mutex gPythonInitMutex;
 
-}  // namespace
+//}  // namespace
 
 extern "C" int LUAOPEN(lua_State* L) {
   reloadGlobal();
@@ -257,3 +257,4 @@ extern "C" int LUAOPEN(lua_State* L) {
 
   return 1;
 }
+}  // namespace
