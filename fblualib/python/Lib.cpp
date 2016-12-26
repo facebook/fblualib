@@ -12,13 +12,10 @@
 #define _GNU_SOURCE 1
 #endif
 
-#include <Python.h>
-#include <glog/logging.h>
 #include <dlfcn.h>
+#include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/arrayobject.h>
-
-#include <mutex>
 
 #include "LuaToPython.h"
 #include "PythonToLua.h"
@@ -72,20 +69,12 @@ int execPython(lua_State* L) {
   return 0;
 }
 
-int evalInner(lua_State* L, PythonToLuaConverter::NoneMode noneMode) {
+int evalPython(lua_State* L) {
   PythonGuard g;
   PyObjectHandle ret;
   auto ref = getOpaqueRef(L, 1);
-  PythonToLuaConverter converter(noneMode);
+  PythonToLuaConverter converter;
   return converter.convert(L, ref ? ref->obj : doExec(L, Py_eval_input));
-}
-
-int evalPython(lua_State* L) {
-  return evalInner(L, PythonToLuaConverter::NONE_AS_LUA_NIL);
-}
-
-int evalNonePython(lua_State* L) {
-  return evalInner(L, PythonToLuaConverter::NONE_AS_LUAPY_NONE);
 }
 
 int refEvalPython(lua_State* L) {
@@ -169,11 +158,10 @@ int getModule(lua_State* L) {
 
   return 1;
 }
-namespace{
+
 const struct luaL_reg pythonFuncs[] = {
   {"exec", execPython},
   {"eval", evalPython},
-  {"eval_none", evalNonePython},
   {"reval", refEvalPython},
   {"ref", getRef},
   {"float", getFloat},
@@ -187,7 +175,7 @@ const struct luaL_reg pythonFuncs[] = {
   {"dict", getDict},
   {"import", getModule},
   {"_check_no_refs", checkNoRefs},
-  //{nullptr, nullptr},
+  {nullptr, nullptr},
 };
 
 }  // namespace
@@ -229,8 +217,6 @@ PythonInitializer::PythonInitializer() {
   }
 }
 
-std::mutex gPythonInitMutex;
-
 }  // namespace
 
 extern "C" int LUAOPEN(lua_State* L) {
@@ -240,20 +226,15 @@ extern "C" int LUAOPEN(lua_State* L) {
   static PythonInitializer initializer;  // only once, thread-safe
 
   lua_newtable(L);
- if( luaL_register(L, nullptr, pythonFuncs))
+  luaL_register(L, nullptr, pythonFuncs);
 
-  {
-    // numpy's import_array() doesn't appear to be thread-safe...
+  initRef(L);
+  initLuaToPython(L);
+  initPythonToLua(L);
 
-    std::lock_guard<std::mutex> lock(gPythonInitMutex);
-    initRef(L);
-    initLuaToPython(L);
-    initPythonToLua(L);
-
-    // Initialization finished. Any Python references created so far are there
-    // to stay until the module is unloaded.
-    debugSetWatermark();
-  }
+  // Initialization finished. Any Python references created so far are there
+  // to stay until the module is unloaded.
+  debugSetWatermark();
 
   return 1;
 }
