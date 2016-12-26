@@ -58,6 +58,6 @@ class LuaToPythonConverter {
 
 int initLuaToPython(lua_State* L);
 
-}}  // namespaces
+}//}  // namespaces
 
 #endif /* FBLUA_PYTHON_LUATOPYTHON_H_ */
