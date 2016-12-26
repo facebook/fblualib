@@ -170,7 +170,7 @@ int getModule(lua_State* L) {
   return 1;
 }
 
-const struct luaL_reg pythonFuncs[17] = {
+/*const struct luaL_reg pythonFuncs[17] = {
   {"exec", execPython},
   {"eval", evalPython},
   {"eval_none", evalNonePython},
@@ -188,7 +188,7 @@ const struct luaL_reg pythonFuncs[17] = {
   {"import", getModule},
   {"_check_no_refs", checkNoRefs},
  {nullptr, nullptr},
-};
+};*/
 
 }  // namespace
 
