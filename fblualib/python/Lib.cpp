@@ -130,7 +130,7 @@ PyObjectHandle defaultFromList(lua_State* L) {
   return fromlist;
 }
 }  // namespace
-name {
+namespace {
 int getModule(lua_State* L) {
   PythonGuard g;
   const char* name = lua_tostring(L, 1);
