@@ -10,7 +10,7 @@
 package = 'fbpython'
 version = '0.1.2'
 source = {
-    url = 'https://github.com/qinghuizhao/fblualib',
+    url = 'https://github.com/facebook/fblualib',
 }
 description = {
     summary = 'FB Lua - Python Bridge',
@@ -27,7 +27,7 @@ dependencies = {
     'penlight >= 1.3.1',
 }
 source = {
-    url = 'https://github.com/qinghuizhao/fblualib',
+    url = 'https://github.com/facebook/fblualib',
     dir = 'fblualib/python',
 }
 build = {
