@@ -88,7 +88,10 @@ echo
 if [ $current -eq 1 ]; then
     git clone --depth 1 https://github.com/facebook/folly
     git clone --depth 1 https://github.com/facebook/fbthrift
-    git clone https://github.com/facebook/thpp
+    #error   ubuntu16.04
+    #git clone https://github.com/facebook/thpp
+    #add my thpp
+    git clone https://github.com/qinghuizhao/thpp
     git clone https://github.com/facebook/fblualib
     git clone https://github.com/facebook/wangle
 else
