@@ -31,5 +31,5 @@ for rock in $rocks; do
   cd $root/$rock
   # Unfortunately, luarocks doesn't like separating the "build" and
   # "install" phases, so we have to run as root.
-  sudo ~/torch/install/bin/luarocks make rockspec/fb-rock-$version.rockspec
+  sudo ~/torch/install/bin/luarocks make rockspec/fb$rock-$version.rockspec
 done
