@@ -10,7 +10,7 @@
 
 #include <algorithm>
 #include <cerrno>
-#include <folly/Malloc.h>
+#include <folly/memory/Malloc.h>
 #include <glog/logging.h>
 
 extern "C" {

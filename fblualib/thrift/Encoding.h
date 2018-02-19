@@ -11,7 +11,7 @@
 #ifndef FBLUA_THRIFT_ENCODING_H_
 #define FBLUA_THRIFT_ENCODING_H_
 
-#include <folly/io/Compression.h>
+#include <folly/compression/Compression.h>
 #include <folly/io/IOBuf.h>
 #include <fblualib/thrift/if/gen-cpp2/LuaObject_types.h>
 
