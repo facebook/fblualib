@@ -63,7 +63,7 @@ INCLUDE_DIRECTORIES(
   ${Boost_INCLUDE_DIRS}
 )
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14")
 
 SET(src
   Debug.cpp
