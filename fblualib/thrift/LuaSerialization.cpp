@@ -12,7 +12,7 @@
 #include <fblualib/LuaUtils.h>
 #include "Encoding.h"
 #include "Serialization.h"
-#include <folly/io/Compression.h>
+#include <folly/compression/Compression.h>
 
 using namespace fblualib;
 using namespace fblualib::thrift;

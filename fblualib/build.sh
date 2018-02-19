@@ -22,7 +22,7 @@ mkdir -p build
 cd build
 cmake ..
 make
-sudo make install
+make install
 
 rocks="util luaunit complex \
   ffivector editline trepl debugger mattorch python thrift torch"
@@ -31,5 +31,5 @@ for rock in $rocks; do
   cd $root/$rock
   # Unfortunately, luarocks doesn't like separating the "build" and
   # "install" phases, so we have to run as root.
-  sudo luarocks make rockspec/fb$rock-$version.rockspec
+  luarocks make rockspec/fb$rock-$version.rockspec VERBOSE=1
 done

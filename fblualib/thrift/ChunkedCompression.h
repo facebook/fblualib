@@ -15,7 +15,7 @@
 #include <vector>
 
 #include <folly/io/IOBuf.h>
-#include <folly/io/Compression.h>
+#include <folly/compression/Compression.h>
 
 #include <fblualib/thrift/if/gen-cpp2/ChunkedCompression_types.h>
 
